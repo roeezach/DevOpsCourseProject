@@ -14,7 +14,7 @@ jobs:
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           PROJECT: ${{ secrets.PROJECT }}
-        run: docker build --t ${{DOCKER_USERNAME }}/${{secrets.PROJECT}}:latest .
+        run: docker build --t ${{secrets.DOCKER_USERNAME }}/${{secrets.PROJECT}}:latest .
       - name: Run docker
         run: docker run -d --name ${{ secrets.PROJECT }} -p 80:3000 ${{ secrets.DOCKER_USERNAME }}/${{ secrets.PROJECT }}:latest
       - name: Set Up Python
