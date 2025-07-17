@@ -8,7 +8,7 @@ This project demonstrates a complete DevOps CI/CD pipeline implementation for a 
 **Project Type**: Final Project  
 **Application**: Currency Converter Web App
 
-## Architecture
+## 🏗️ Architecture
 
 ```
 DevOpsCourseProject/
@@ -21,7 +21,7 @@ DevOpsCourseProject/
 │   └── selenium.py        # Selenium automated tests
 ├── .github/workflows/     # CI/CD pipelines
 │   ├── main_pull.yml      # Testing workflow (PR)
-│   └── workflow.yml       # Build & Deploy workflow
+│   └── deploy.yml         # Build & Deploy workflow
 ├── docker-compose.yaml    # Container orchestration
 ├── Dockerfile            # Container configuration
 └── package.json          # Dependencies
@@ -83,7 +83,7 @@ DevOpsCourseProject/
 7. Clean up containers
 ```
 
-### Deployment Pipeline (`workflow.yml`)
+### Deployment Pipeline (`deploy.yml`)
 
 **Triggers**: Push to main branch
 
