@@ -2,7 +2,6 @@ name: upload my image to docker hub
 on:
   push:
     branches: [main]
-#The Job below is running on the ubunto virtual machine.
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,7 +19,6 @@ jobs:
       - name: Push Dockerhub
         run: docker push ${{ secrets.DOCKER_USERNAME }}/${{secrets.PROJECT }}:latest
 
-  ## at this point the image is pushed to docker hub
   deploy:
     runs-on: ubuntu-latest
     needs: build
@@ -36,12 +34,3 @@ jobs:
           script: |
             cd /opt/app
             sudo docker compose pull && sudo docker compose up -d --force-recreate
-
-## at this point we would also need to deploy to aws.
-
-# ####
-# This workflow:
-# Verifies that Docker builds successfully and runs correctly.
-# Sets up a Python test environment with Chromium for browser automation.
-# Runs functional/UI tests using Selenium + Pytest.
-# Is intended for CI validation of Dockerized Python applications with browser-based tests.
