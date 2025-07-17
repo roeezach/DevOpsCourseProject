@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Currency Converter</title>
+    <link rel="stylesheet" href="/style.css" />
+</head>
+
+<body>
+    <div class="container">
+        <h1>Shekel to Foreign Currency</h1>
+        <form action="/convert" method="POST" id="currency-form">
+            <label for="shekels">Amount in ₪:</label>
+            <input type="number" id="amount" name="shekels" required placeholder="Enter amount in shekels" />
+
+            <label for="currency">Convert to:</label>
+            <select name="currency" id="currency" required>
+                <option value="usd">US Dollar ($)</option>
+                <option value="eur">Euro (€)</option>
+                <option value="gbp">British Pound (£)</option>
+            </select>
+
+            <button type="submit" id="convert">Convert</button>
+        </form>
+    </div>
+</body>
+
+</html>
