@@ -1,0 +1,58 @@
+---
+- name: Destroy AWS infrastructure
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - group_vars/final-project.env
+  vars:
+    ansible_host_key_checking: false
+    ansible_ssh_private_key_file: ~/.ssh/first-key.pem
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+
+  tasks:
+    - name: Terminate EC2 instance
+      amazon.aws.ec2_instance:
+        region: "{{ zone }}"
+        instance_ids:
+          - "{{ server_id }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Delete Security Group
+      amazon.aws.ec2_group:
+        name: "{{ vpc_name }}-sg"
+        region: "{{ zone }}"
+        vpc_id: "{{ vpc_id }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Delete Route Table
+      amazon.aws.ec2_vpc_route_table:
+        route_table_id: "{{ rt_id }}"
+        region: "{{ zone }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Detach and delete Internet Gateway
+      amazon.aws.ec2_vpc_igw:
+        vpc_id: "{{ vpc_id }}"
+        igw_id: "{{ igw_id }}"
+        region: "{{ zone }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Delete Subnet
+      amazon.aws.ec2_vpc_subnet:
+        subnet_id: "{{ subnet_id }}"
+        region: "{{ zone }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Delete VPC
+      amazon.aws.ec2_vpc_net:
+        vpc_id: "{{ vpc_id }}"
+        region: "{{ zone }}"
+        state: absent
+      ignore_errors: yes

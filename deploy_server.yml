@@ -1,3 +1,4 @@
+---
 - name: create final project app on cloud
   hosts: localhost
   connection: local
@@ -6,10 +7,9 @@
     - group_vars/env
   vars:
     ansible_host_key_checking: false
+    ansible_ssh_private_key_file: ~/.ssh/first-key.pem
     ansible_python_interpreter: /usr/bin/python3
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-
-
 
   tasks:
   - name: create VPC
@@ -105,6 +105,7 @@
           ports:
             - 22
             - 80
+            - 3000
           cidr_ip: 0.0.0.0/0
       tags:
         Name: "{{ vpc_name }}-sg"
@@ -149,17 +150,16 @@
         "tag:Name": "{{ server_name }}"
         instance-state-name: [ "running" ]
     register: ec2_data
-
-  - debug: 
-      var: ec2_data.instances[0].public_ip_address
       
   - debug:
       msg: "Your app is deployed and running at http://{{ ec2_data.instances[0].public_ip_address }}"
 
   - name: Add server public IP to application host group
     add_host:
-      hostname: "{{ ec2_data.instances[0].public_ip_address }}"
+      name: "{{ ec2_data.instances[0].public_ip_address }}"
       groups: app
+      ansible_ssh_private_key_file: ~/.ssh/first-key.pem
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 
   - name: Add Public IP definition to vars file
     ansible.builtin.lineinfile:
@@ -192,17 +192,23 @@
   user: ubuntu
   become: yes
   gather_facts: False
+  vars:
+    ansible_ssh_private_key_file: ~/.ssh/first-key.pem
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    ansible_host_key_checking: false
   vars_files:
     - group_vars/docker.env
+    
   tasks: 
     - name: add GPG key_name
       ansible.builtin.shell: |
-        wget -qO - https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
     - name: Add Docker Repository
       apt_repository:
-        repo: deb https://download.docker.com/linux/ubuntu jammy stable
+        repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu jammy stable"
         state: present
+        update_cache: yes
 
     - name: Install Docker
       apt:
@@ -212,47 +218,90 @@
           - containerd.io
           - docker-buildx-plugin
           - docker-compose-plugin
+          - git
         state: latest
         update_cache: true
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
 
     - name: restart Docker service
       service:
         name: docker
         state: restarted
         enabled: yes
-    
-    - name: Copy file with owner and permissions
+
+    - name: Copy SSH private key to remote server for git access
       copy:
-        src: ~/.ssh/first-key
-        dest: ~/.ssh/first-key
+        src: ~/.ssh/first-key.pem
+        dest: /home/ubuntu/.ssh/id_rsa
+        owner: ubuntu
+        group: ubuntu
         mode: '0600'
+      become: yes
+
+    - name: Create /opt/app directory with correct permissions
+      file:
+        path: /opt/app
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+      become: yes
 
     - name: Clone my app repo
       git:
-        repo: https://github.com/roeezach/DevOpsCourseProject.git
+        repo: git@github.com:roeezach/DevOpsCourseProject.git
         dest: /opt/app
         version: main
-        key_file: ~/.ssh/first-key
-        accept_hostkey: yes
         force: yes
+        accept_hostkey: yes
+      become: yes
+      become_user: ubuntu
 
-    - name: build docker image and push to DockerHub
-      shell: "{{ item }}"
+
+
+    - name: Change ownership of app directory
+      file:
+        path: /opt/app
+        owner: ubuntu
+        group: ubuntu
+        recurse: yes
+
+    - name: build docker image
+      shell: docker build . --tag {{ docker_user }}/pass_gen:latest
       args:
         chdir: /opt/app
-      with_items:
-        - docker login -u {{ docker_user }} -p {{ docker_token }}
-        - docker build . --tag {{ docker_user }}/pass_gen:latest
-        - docker push {{ docker_user }}/pass_gen:latest
+      become: true
+
+    - name: login to DockerHub
+      shell: docker login -u {{ docker_user }} -p {{ docker_token }}
+      args:
+        chdir: /opt/app
+      become: true
+
+    - name: push docker image
+      shell: docker push {{ docker_user }}/pass_gen:latest
+      args:
+        chdir: /opt/app
+      become: true
 
     - name: start docker app
       shell: docker compose up -d
       args:
         chdir: /opt/app
+      become: true
 
     - name: get public IP from server
-      shell: curl ident.me
+      shell: curl -s ident.me
       register: ip_address
 
     - debug:
         msg: "Host secret : {{ ip_address.stdout }}"
+
+    - name: Print access URL
+      debug:
+        msg: "Your app is deployed! Access it at: http://{{ ip_address.stdout }}:3000"

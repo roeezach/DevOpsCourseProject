@@ -1,1 +1,3 @@
 node_modules/
+group_vars/docker.env
+group_vars/final-project.env

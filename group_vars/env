@@ -8,7 +8,7 @@ env_name: final-project
 zone: eu-central-1
 subnet1: eu-central-1a
 
-keypair: first-key
+keypair: first-key-new
 
 aws_ubuntu_ami: ami-01e444924a2233b07
 Server_type: t2.micro
