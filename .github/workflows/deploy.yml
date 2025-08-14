@@ -47,4 +47,5 @@ jobs:
 
       - name: Run playbook
         run: |
-          ansible-playbook ansible/deploy_server.yml --ssh-common-args='-o StrictHostKeyChecking=no'
+          ansible-playbook ansible/deploy_server.yml --private-key ~/.ssh/final_project_key \
+          --ssh-common-args='-o StrictHostKeyChecking=no'
