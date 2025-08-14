@@ -5,3 +5,7 @@ test-docker-simulation.ps1
 test-main-pull.ps
 test-main-pull.ps1
 act-instructions.md
+.env
+final-project.env
+docker.env
+tests

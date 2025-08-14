@@ -20,13 +20,14 @@ jobs:
       - name: Set Up Python
         uses: actions/setup-python@v2
         with:
-          python-version: "3.9"
+          python-version: "3.10.12"
+
       - name: Install software
         run: sudo apt-get install -y chromium-browser
       - name: install necessary packages
-        run: pip install requests webdriver-manager selenium pytest
+        run: pip install requests selenium=4.34.2 pytest webdriver-manager==4.0.2
       - name: Run the Pytest script
-        run: pytest tests/test_selenium.py -v -s
+        run: pytest tests/ -rA
       - name: Cleanup
         if: always()
         run: |
