@@ -43,8 +43,8 @@ jobs:
         uses: shimataro/ssh-key-action@v2
         with:
           key: ${{ secrets.FINAL_PROJECT_KEY }}
-          name: final_project_key
           known_hosts: ${{ secrets.HOST }}
+          name: ${{ secrets.NAME }}
 
       - name: Run playbook
         run: |

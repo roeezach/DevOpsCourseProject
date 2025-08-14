@@ -1,4 +1,4 @@
-name: upload my image to docker hub
+name: test the code upload my image to docker hub
 
 on:
   pull_request:
