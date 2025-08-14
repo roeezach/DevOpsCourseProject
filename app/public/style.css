@@ -1,71 +1,71 @@
 body {
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #eef2f3;
-    margin: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #d3dee0;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
 }
 
 .container {
-    background-color: #fff;
-    padding: 2em;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    width: 320px;
-    text-align: center;
+  background-color: #fff;
+  padding: 2em;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 320px;
+  text-align: center;
 }
 
 h1 {
-    color: #333;
-    margin-bottom: 1em;
+  color: #333;
+  margin-bottom: 1em;
 }
 
 label {
-    display: block;
-    margin: 0.5em 0 0.25em;
-    color: #444;
-    text-align: left;
+  display: block;
+  margin: 0.5em 0 0.25em;
+  color: #444;
+  text-align: left;
 }
 
 input,
 select {
-    width: 100%;
-    padding: 0.6em;
-    margin-bottom: 1em;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 1em;
+  width: 100%;
+  padding: 0.6em;
+  margin-bottom: 1em;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1em;
 }
 
 button {
-    background-color: #007acc;
-    color: white;
-    border: none;
-    padding: 0.7em 1.2em;
-    font-size: 1em;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s;
+  background-color: #007acc;
+  color: white;
+  border: none;
+  padding: 0.7em 1.2em;
+  font-size: 1em;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
 }
 
 button:hover {
-    background-color: #005fa3;
+  background-color: #005fa3;
 }
 
 #result {
-    color: #222;
-    font-size: 1.4em;
-    margin: 1em 0;
+  color: #222;
+  font-size: 1.4em;
+  margin: 1em 0;
 }
 
 #convert-again {
-    margin-top: 1em;
-    padding: 0.5em 1em;
-    background-color: #e0e0e0;
-    border: none;
-    border-radius: 5px;
-    font-size: 0.9em;
-    cursor: pointer;
+  margin-top: 1em;
+  padding: 0.5em 1em;
+  background-color: #e0e0e0;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.9em;
+  cursor: pointer;
 }

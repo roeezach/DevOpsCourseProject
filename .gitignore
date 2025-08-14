@@ -1,3 +1,14 @@
 node_modules/
 group_vars/docker.env
 group_vars/final-project.env
+test-docker-simulation.sh
+test-main-pull.sh
+test-docker-simulation.ps1
+test-main-pull.ps
+test-main-pull.ps1
+act-instructions.md
+.env
+final-project.env
+docker.env
+__pycache__
+.pytest_cache
