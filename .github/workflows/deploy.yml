@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install dependencies
-        run: pip install ansible==6.7.10 requests boto boto3
+        run: pip install ansible==10.7.10 requests boto boto3
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
