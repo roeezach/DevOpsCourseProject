@@ -1,0 +1,267 @@
+- name: create final project app on cloud
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  vars_files:
+    - group_vars/env
+  vars:
+    ansible_host_key_checking: false
+    ansible_python_interpreter: /usr/bin/python3
+
+  tasks:
+    - name: create VPC
+      amazon.aws.ec2_vpc_net:
+        name: "{{ vpc_name }}"
+        cidr_block: "{{ network }}"
+        region: "{{ zone }}"
+        state: present
+        dns_hostnames: yes
+        dns_support: yes
+        multi_ok: no
+        tags:
+          Name: "{{ vpc_name }}"
+      register: vpc
+
+    - name: Add VPC definition to vars file
+      ansible.builtin.lineinfile:
+        path: group_vars/final-project.env
+        regexp: "vpc_id: "
+        line: "vpc_id: {{ vpc.vpc.id }}"
+        state: present
+        create: True
+
+    - name: associate subnet to the VPC
+      amazon.aws.ec2_vpc_subnet:
+        state: present
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ zone }}"
+        cidr: "{{ item.env_network }}"
+        map_public: "{{ item.external_ip }}"
+        az: "{{ item.az }}"
+        resource_tags:
+          Name: "{{ item.subnet_name }}"
+        wait: yes
+      with_items:
+        - {
+            subnet_name: "{{ vpc_name }}_public",
+            env_network: "{{ subnet_public }}",
+            external_ip: yes,
+            az: "{{ subnet1 }}",
+          }
+      register: subnet
+
+    - name: Add subnet definition to vars file
+      ansible.builtin.lineinfile:
+        path: group_vars/final-project.env
+        regexp: "subnet_id: "
+        line: "subnet_id: {{ subnet.results[0].subnet.id }}"
+        state: present
+        create: true
+
+    - name: create IGW
+      amazon.aws.ec2_vpc_igw:
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ zone }}"
+        state: present
+        tags:
+          Name: "{{ vpc_name }}_igw"
+      register: igw
+
+    - name: Add IGW definition to vars file
+      ansible.builtin.lineinfile:
+        path: group_vars/final-project.env
+        regexp: "igw_id: "
+        line: "igw_id: {{ igw.gateway_id }}"
+        state: present
+        create: True
+
+    - name: Route table for public Subnet
+      amazon.aws.ec2_vpc_route_table:
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ zone }}"
+        state: present
+        subnets:
+          - "{{ subnet.results[0].subnet.id }}"
+        routes:
+          - dest: 0.0.0.0/0
+            gateway_id: "{{ igw.gateway_id }}"
+        tags:
+          Name: "{{ vpc_name }}_public_rt"
+      register: route_table
+
+    - name: Save route table ID to env file
+      ansible.builtin.lineinfile:
+        path: group_vars/final-project.env
+        regexp: "rt_id: "
+        line: "rt_id: {{ route_table.route_table.id }}"
+        state: present
+        create: true
+
+    - name: Create security group
+      amazon.aws.ec2_group:
+        name: "{{ vpc_name }}-sg"
+        description: "Security group for {{ vpc_name }}"
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ zone }}"
+        state: present
+        rules:
+          - proto: tcp
+            ports:
+              - 80
+              - 22
+            cidr_ip: 0.0.0.0/0
+        tags:
+          Name: "{{ vpc_name }}-sg"
+      register: sg
+
+    - name: Save Security Group ID to env
+      ansible.builtin.lineinfile:
+        path: group_vars/final-project.env
+        regexp: "sg_id:"
+        line: "sg_id: {{ sg.group_id }}"
+        state: present
+        create: true
+
+    - name: Create server
+      amazon.aws.ec2_instance:
+        image_id: "{{ aws_ubuntu_ami }}"
+        wait: yes
+        instance_type: "{{ Server_type }}"
+        region: "{{ zone }}"
+        key_name: "{{ keypair }}"
+        volumes:
+          - device_name: /dev/sda1
+            ebs:
+              volume_type: gp3
+              volume_size: "{{ server_volume_size }}"
+              delete_on_termination: true
+        tags:
+          Name: "{{ server_name }}"
+          Environment: "{{ env }}"
+        exact_count: 1
+        wait_timeout: 300
+        vpc_subnet_id: "{{ subnet.results[0].subnet.id }}"
+        security_group: "{{ sg.group_id }}"
+        network:
+          assign_public_ip: yes
+        state: running
+      register: server_ec2
+
+    - name: get ip of instance
+      amazon.aws.ec2_instance_info:
+        filters:
+          "tag:Name": "{{ server_name }}"
+          instance-state-name: ["running"]
+      register: ec2_data
+
+    - debug: var=ec2_data.instances[0].public_ip_address
+
+    - debug:
+        msg: "App is deployed and running at http://{{ ec2_data.instances[0].public_ip_address }}"
+
+    - name: Add server public IP to application host group
+      add_host:
+        name: "{{ ec2_data.instances[0].public_ip_address }}"
+        groups: app
+        ansible_user: ubuntu
+        ansible_ssh_private_key_file: /home/roeez/.ssh/final_project_key
+
+    - name: Add Public IP definition to vars file
+      ansible.builtin.lineinfile:
+        path: group_vars/final-project.env
+        regexp: "server_id: "
+        line: "server_id: {{ ec2_data.instances[0].instance_id }}"
+        state: present
+        create: True
+
+    - name: Save EC2 public IP to env file
+      ansible.builtin.lineinfile:
+        path: group_vars/final-project.env
+        regexp: "ec2_public_ip: "
+        line: "ec2_public_ip: {{ server_ec2.instances[0].public_ip_address }}"
+        state: present
+        create: true
+
+    - name: Wait for SSH to start using external IP
+      wait_for:
+        host: "{{ ec2_data.instances[0].public_ip_address }}"
+        port: 22
+        timeout: 300
+
+    - name: Pause for ubuntu user access after boot
+      ansible.builtin.pause:
+        seconds: 30
+
+- name: Setup web server
+  hosts: app
+  user: ubuntu
+  become: yes
+  gather_facts: False
+  vars_files:
+    - group_vars/docker.env
+  tasks:
+    - name: add GPG key_name
+      ansible.builtin.shell: |
+        wget -qO - https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu jammy stable
+        state: present
+
+    - name: Install Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: latest
+        update_cache: true
+
+    - name: restart Docker service
+      service:
+        name: docker
+        state: restarted
+        enabled: yes
+
+    - name: Copy SSH private key to instance
+      copy:
+        src: /home/roeez/.ssh/final_project_key
+        dest: /home/ubuntu/.ssh/final_project_key
+        mode: "0600"
+        owner: ubuntu
+        group: ubuntu
+
+    - name: Clone my app repo
+      git:
+        repo: git@github.com:roeezach/DevOpsCourseProject.git
+        dest: /opt/app
+        version: main
+        key_file: /home/ubuntu/.ssh/final_project_key
+        accept_hostkey: yes
+        force: yes
+
+    - name: build docker image and push to DockerHub
+      shell: "{{ item }}"
+      args:
+        chdir: /opt/app
+      with_items:
+        - docker login -u {{ docker_user }} -p {{ docker_token }}
+        - docker build . --tag {{ docker_user }}/pass_gen:latest
+        - docker push {{ docker_user }}/pass_gen:latest
+
+    - name: start docker app
+      shell: docker compose up -d
+      args:
+        chdir: /opt/app
+
+    - name: get public IP from server
+      shell: curl ident.me
+      register: ip_address
+
+    - debug:
+        msg:
+          - "Host secret : {{ ip_address.stdout }}"
+          - "App is ready at http://{{ ip_address.stdout }}"

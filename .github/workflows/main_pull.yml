@@ -10,25 +10,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      # - name: Login to Docker Hub
-      #   uses: docker/login-action@v1
-      #   with:
-      #     username: ${{ secrets.DOCKER_USERNAME }}
-      #     password: ${{ secrets.DOCKER_PASSWORD }}
       - name: build
-        run: docker build --tag ${{ secrets.DOCKER_USERNAME }}/${{ secrets.PROJECT }}:latest .
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          PROJECT: ${{ secrets.PROJECT }}
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/${{ secrets.PROJECT }}:latest .
       - name: Run docker
         run: docker run -d --name ${{ secrets.PROJECT }} -p 80:3000 ${{ secrets.DOCKER_USERNAME }}/${{ secrets.PROJECT }}:latest
       - name: Set Up Python
         uses: actions/setup-python@v2
         with:
-          python-version: "3.9"
+          python-version: "3.10.12"
+
       - name: Install software
         run: sudo apt-get install -y chromium-browser
       - name: install necessary packages
-        run: pip install requests webdriver-manager selenium pytest
+        run: pip install requests selenium==4.34.2 pytest webdriver-manager==4.0.2
       - name: Run the Pytest script
-        run: pytest tests/selenium.py -v -s
+        run: pytest tests/ -rA
       - name: Cleanup
         if: always()
         run: |
