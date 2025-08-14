@@ -248,9 +248,9 @@
       args:
         chdir: /opt/app
       with_items:
-        - docker login -u {{ docker_user }} -p {{ docker_token }}
-        - docker build . --tag {{ docker_user }}/pass_gen:latest
-        - docker push {{ docker_user }}/pass_gen:latest
+        - docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_TOKEN }}
+        - docker build . --tag ${{ secrets.DOCKER_USERNAME }}/${{ secrets.PROJECT }}:latest
+        - docker push ${{ secrets.DOCKER_USERNAME }}/${{ secrets.PROJECT }}:latest
 
     - name: start docker app
       shell: docker compose up -d
