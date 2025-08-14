@@ -164,7 +164,7 @@
         name: "{{ ec2_data.instances[0].public_ip_address }}"
         groups: app
         ansible_user: ubuntu
-        ansible_ssh_private_key_file: /home/roeez/.ssh/final_project_key
+        ansible_ssh_private_key_file: ~/.ssh/final_project_key
 
     - name: Add Public IP definition to vars file
       ansible.builtin.lineinfile:
@@ -228,8 +228,8 @@
 
     - name: Copy SSH private key to instance
       copy:
-        src: /home/roeez/.ssh/final_project_key
-        dest: /home/ubuntu/.ssh/final_project_key
+        src: ~/.ssh/final_project_key
+        dest: ~/.ssh/final_project_key
         mode: "0600"
         owner: ubuntu
         group: ubuntu
@@ -239,7 +239,7 @@
         repo: git@github.com:roeezach/DevOpsCourseProject.git
         dest: /opt/app
         version: main
-        key_file: /home/ubuntu/.ssh/final_project_key
+        key_file: ~/.ssh/final_project_key
         accept_hostkey: yes
         force: yes
 
@@ -248,9 +248,9 @@
       args:
         chdir: /opt/app
       with_items:
-        - docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_TOKEN }}
-        - docker build . --tag ${{ secrets.DOCKER_USERNAME }}/${{ secrets.PROJECT }}:latest
-        - docker push ${{ secrets.DOCKER_USERNAME }}/${{ secrets.PROJECT }}:latest
+        - docker login -u {{ docker_username }} -p {{ docker_token }}
+        - docker build . --tag {{ docker_username }}/pass_gen:latest
+        - docker push {{ docker_username }}/pass_gen:latest
 
     - name: start docker app
       shell: docker compose up -d
