@@ -42,11 +42,10 @@ jobs:
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2
         with:
-          key: ${{ secrets.FINAL_PROJECT_KEY }}
+          key: ${{ secrets.SSH_KEY }}
           known_hosts: ${{ secrets.HOST }}
           name: ${{ secrets.NAME }}
 
       - name: Run playbook
         run: |
-          ansible-playbook ansible/deploy_server.yml --private-key ~/.ssh/${{ secrets.NAME }} \
-          --ssh-common-args='-o StrictHostKeyChecking=no'
+          ansible-playbook ansible/deploy_server.yml --ssh-common-args='-o StrictHostKeyChecking=no'
