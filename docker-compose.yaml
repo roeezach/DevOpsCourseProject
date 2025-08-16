@@ -1,7 +1,7 @@
 version: "3.3"
 services:
   web:
-    container_name: pass_gen
-    image: rif7/pass_gen:latest
+    container_name: currency_converter
+    image: rif7/currency_converter:latest
     ports:
       - "80:3000"
