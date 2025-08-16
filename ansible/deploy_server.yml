@@ -249,8 +249,8 @@
         chdir: /opt/app
       with_items:
         - docker login -u {{ docker_username }} -p {{ docker_token }}
-        - docker build . --tag {{ docker_username }}/pass_gen:latest
-        - docker push {{ docker_username }}/pass_gen:latest
+        - docker build . --tag {{ docker_username }}/currency_converter:latest
+        - docker push {{ docker_username }}/currency_converter:latest
 
     - name: start docker app
       shell: docker compose up -d
