@@ -14,5 +14,4 @@ def test_convert_again_button(driver, config):
     convert_again = driver.find_element(By.ID, "convert-again")
     convert_again.click()
     time.sleep(1)
-    # After clicking, the form should be present again
     assert driver.find_element(By.TAG_NAME, "form") 
