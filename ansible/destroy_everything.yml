@@ -1,28 +1,33 @@
-- name: Destroy final project AWS resources safely (correct dependency order)
+- name: Destroy final project AWS resources using saved IDs
   hosts: localhost
   connection: local
   gather_facts: false
   vars_files:
-    - group_vars/env
-    - group_vars/final-project.env
+    - group_vars/env          # מכאן נטען region = zone וכד'
   vars:
     ansible_python_interpreter: /usr/bin/python3
 
   tasks:
-    # ---------- 0) Preflight: הדפסה נחמדה של מה שנמחק (אם מוגדר) ----------
-    - name: Show planned deletions (if IDs are defined)
+    # 0) טוענים את קובץ ה-IDs שנכתב בזמן ההקמה
+    - name: Load saved IDs from final-project.env (if present)
+      include_vars:
+        file: group_vars/final-project.env
+      register: loaded_final_vars
+      failed_when: false
+      ignore_errors: true
+
+    - name: Show what will be deleted (only if IDs exist)
       debug:
         msg:
-          - "Region: {{ zone | default('N/A') }}"
-          - "VPC: {{ vpc_id | default('N/A') }}"
-          - "Subnet: {{ subnet_id | default('N/A') }}"
-          - "Route Table: {{ rt_id | default('N/A') }}"
-          - "IGW: {{ igw_id | default('N/A') }}"
-          - "Security Group: {{ sg_id | default('N/A') }}"
-          - "EC2 Instance: {{ server_id | default('N/A') }}"
+          - "Region: {{ zone }}"
+          - "VPC: {{ vpc_id }}"
+          - "Subnet: {{ subnet_id }}"
+          - "Route Table: {{ rt_id }}"
+          - "IGW: {{ igw_id }}"
+          - "Security Group: {{ sg_id }}"
+          - "EC2 Instance: {{ server_id }}"
 
-    # ---------- 1) Terminate EC2 ----------
-    - name: Lookup instance (skip if server_id undefined)
+    - name: Lookup instance (skip if server_id missing)
       amazon.aws.ec2_instance_info:
         region: "{{ zone }}"
         instance_ids: ["{{ server_id }}"]
@@ -39,10 +44,10 @@
         wait_timeout: 900
       when:
         - server_id is defined
-        - ec2_lookup is defined
         - (ec2_lookup.instances | default([])) | length > 0
+      failed_when: false
 
-    - name: Verify instance is terminated (retry until gone)
+    - name: Verify instance is terminated
       amazon.aws.ec2_instance_info:
         region: "{{ zone }}"
         instance_ids: ["{{ server_id }}"]
@@ -53,8 +58,7 @@
       until: (ec2_after.instances | default([])) | length == 0
       failed_when: false
 
-    # ---------- 2) Delete Security Group ----------
-    - name: Delete Security Group (if sg_id defined)
+    - name: Delete Security Group
       amazon.aws.ec2_group:
         region: "{{ zone }}"
         group_id: "{{ sg_id }}"
@@ -62,8 +66,7 @@
       when: sg_id is defined
       failed_when: false
 
-    # ---------- 3) Delete Subnet (נדרש לפני מחיקת ה-RT/IGW/VPC) ----------
-    - name: Delete Subnet (if subnet_id defined)
+    - name: Delete Subnet
       amazon.aws.ec2_vpc_subnet:
         region: "{{ zone }}"
         subnet_id: "{{ subnet_id }}"
@@ -72,8 +75,7 @@
       when: subnet_id is defined
       failed_when: false
 
-    # ---------- 4) Delete Route Table (לא ה-Main) ----------
-    - name: Delete Route Table (if rt_id defined)
+    - name: Delete Route Table
       amazon.aws.ec2_vpc_route_table:
         region: "{{ zone }}"
         route_table_id: "{{ rt_id }}"
@@ -81,8 +83,7 @@
       when: rt_id is defined
       failed_when: false
 
-    # ---------- 5) Detach & Delete Internet Gateway ----------
-    - name: Delete Internet Gateway (by ID if provided, else by VPC)
+    - name: Delete Internet Gateway
       amazon.aws.ec2_vpc_igw:
         region: "{{ zone }}"
         vpc_id: "{{ vpc_id }}"
@@ -91,8 +92,7 @@
       when: vpc_id is defined
       failed_when: false
 
-    # ---------- 6) Finally, delete the VPC ----------
-    - name: Delete VPC (if vpc_id defined)
+    - name: Delete VPC
       amazon.aws.ec2_vpc_net:
         region: "{{ zone }}"
         vpc_id: "{{ vpc_id }}"
